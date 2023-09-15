@@ -25,9 +25,15 @@ public class Times {
     )
     private long id;
 
+    @Column(
+            nullable = false
+    )
     @Temporal(TemporalType.TIMESTAMP)
     private Date time;
 
+    @Column(
+            nullable = false
+    )
     private String type;
 
     @ManyToOne
