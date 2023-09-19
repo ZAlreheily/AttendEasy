@@ -1,6 +1,5 @@
 package com.example.AttendEasy.Employee;
 
-import com.example.AttendEasy.Manager.Manager;
 import com.example.AttendEasy.Times.Times;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -56,7 +55,10 @@ public class Employee {
 
     @ManyToOne
     @JoinColumn(name = "manager_id")
-    private Manager manager;
+    private Employee manager;
+
+    @OneToMany(mappedBy = "manager")
+    private List<Employee> employeeList;
 
     @OneToMany(mappedBy = "employee")
     private List<Times> checkTimes;

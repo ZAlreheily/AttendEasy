@@ -14,12 +14,18 @@ public interface TimesRepository extends JpaRepository<Times,Long> {
     @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId")
     List<Times> getAllTimes(@Param("employeeId") long employeeId);
 
-    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId AND type == \"IN\"")
-    List<Times> getAllCheckIns(@Param("employeeId") long employeeId);
+//    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId AND type == \"IN\"")
+//    List<Times> getAllCheckIns(@Param("employeeId") long employeeId);
+//
+//    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId AND type == \"OUT\"")
+//    List<Times> getAllCheckOuts(@Param("employeeId") long employeeId);
 
-    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId AND type == \"OUT\"")
-    List<Times> getAllCheckOuts(@Param("employeeId") long employeeId);
+//    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId ORDER BY time DESC LIMIT 1")
+//    Optional<Times> getLatestActivity(@Param("employeeId") long employeeId);
 
-    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId ORDER BY time DESC LIMIT 1")
-    Optional<Times> getLatestActivity(@Param("employeeId") long employeeId);
+    @Query(nativeQuery = true,value = "SELECT * FROM times WHERE employee_id :=employeeId ORDER BY time_in DESC LIMIT 1")
+    Optional<Times> getLastCheckIn(@Param("employeeId") long employeeId);
+
+    @Query(nativeQuery = true, value = "SELECT CASE WHEN MAX(inTime) > MAX(outTime) THEN 'IN' ELSE 'OUT' END AS latest_activity FROM times WHERE employee_id = :employeeId GROUP BY employee_id")
+    Optional<String> getLatestActivity(@Param("employeeId") long employeeId);
 }

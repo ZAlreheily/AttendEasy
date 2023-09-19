@@ -11,7 +11,6 @@ import java.util.List;
 
 import static jakarta.persistence.GenerationType.IDENTITY;
 
-@Entity(name = "Manager")
 @Setter
 @Getter
 @AllArgsConstructor

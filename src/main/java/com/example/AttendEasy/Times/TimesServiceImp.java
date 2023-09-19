@@ -21,14 +21,14 @@ public class TimesServiceImp implements TimesService {
         return timesRepository.getAllTimes(employeeId);
     }
 
-    @Override
-    public List<Times> getAllCheckIns(long employeeId) throws EmployeeNotFoundException {
-        return timesRepository.getAllCheckIns(employeeId);
-    }
-
-    @Override
-    public List<Times> getAllCheckOuts(long employeeId) throws EmployeeNotFoundException {
-        return timesRepository.getAllCheckOuts(employeeId);
-    }
+//    @Override
+//    public List<Times> getAllCheckIns(long employeeId) throws EmployeeNotFoundException {
+//        return timesRepository.getAllCheckIns(employeeId);
+//    }
+//
+//    @Override
+//    public List<Times> getAllCheckOuts(long employeeId) throws EmployeeNotFoundException {
+//        return timesRepository.getAllCheckOuts(employeeId);
+//    }
 
 }

@@ -29,16 +29,13 @@ public class Times {
             nullable = false
     )
     @Temporal(TemporalType.TIMESTAMP)
-    private Date time;
+    private Date inTime;
 
-    @Column(
-            nullable = false
-    )
-    private String type;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date outTime;
 
     @ManyToOne
     @JoinColumn(name = "employee_id")
     private Employee employee;
-
 
 }
