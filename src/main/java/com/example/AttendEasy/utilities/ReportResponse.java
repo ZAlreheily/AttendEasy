@@ -12,4 +12,5 @@ public class ReportResponse {
     private List<SessionResponse> sessions;
     private Duration duration;
     private long employeeId;
+
 }

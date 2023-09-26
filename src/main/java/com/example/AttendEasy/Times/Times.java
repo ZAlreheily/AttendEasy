@@ -1,7 +1,7 @@
 package com.example.AttendEasy.Times;
 
 
-import com.example.AttendEasy.Employee.Employee;
+import com.example.AttendEasy.User.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -36,6 +36,6 @@ public class Times {
 
     @ManyToOne
     @JoinColumn(name = "employee_id")
-    private Employee employee;
+    private User user;
 
 }

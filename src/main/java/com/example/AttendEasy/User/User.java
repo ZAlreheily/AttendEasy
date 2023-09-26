@@ -1,4 +1,4 @@
-package com.example.AttendEasy.Employee;
+package com.example.AttendEasy.User;
 
 import com.example.AttendEasy.Times.Times;
 import jakarta.persistence.*;
@@ -12,13 +12,12 @@ import java.util.List;
 import static jakarta.persistence.GenerationType.IDENTITY;
 
 
-@Entity(name = "Employee")
+@Entity
 @Setter
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name="employee")
-public class Employee {
+public class User {
     @Id
     @GeneratedValue(
             strategy = IDENTITY
@@ -43,25 +42,28 @@ public class Employee {
     private String password;
     @Column(
             name = "mobile_number",
-            nullable = false
+            nullable = false,
+            unique = true
     )
-    private int mobileNumber;
+    private String mobileNumber;
     @Column(
             name = "email",
             nullable = false,
-            columnDefinition = "TEXT"
+            columnDefinition = "TEXT",
+            unique = true
     )
     private String email;
 
     @ManyToOne
     @JoinColumn(name = "manager_id")
-    private Employee manager;
+    private User manager;
 
     @OneToMany(mappedBy = "manager")
-    private List<Employee> employeeList;
+    private List<User> userList;
 
-    @OneToMany(mappedBy = "employee")
+    @OneToMany(mappedBy = "user")
     private List<Times> checkTimes;
 
+    private String roles;
 
 }
