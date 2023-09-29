@@ -4,8 +4,11 @@ package com.example.AttendEasy.User;
 import com.example.AttendEasy.Times.Times;
 import com.example.AttendEasy.Times.TimesRepository;
 import com.example.AttendEasy.User.UserRequest.UserRequest;
+import com.example.AttendEasy.User.UserResponse.UserResponse;
+import com.example.AttendEasy.exceptions.AccessDeniedException;
 import com.example.AttendEasy.exceptions.EmployeeNotFoundException;
 import com.example.AttendEasy.exceptions.TimeMissmatchException;
+import com.example.AttendEasy.utilities.CustomDuration;
 import com.example.AttendEasy.utilities.ReportResponse;
 import com.example.AttendEasy.utilities.SessionResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,15 +30,15 @@ public class UserServiceImp implements UserService {
 
     private final TimesRepository timesRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserServiceImp(UserRepository userRepository, TimesRepository timesRepository) {
+    public UserServiceImp(UserRepository userRepository, TimesRepository timesRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.timesRepository = timesRepository;
+        this.passwordEncoder = passwordEncoder;
     }
-
 
     @Override
     public void checkIn(long employeeId) throws EmployeeNotFoundException, TimeMissmatchException {
@@ -44,7 +47,7 @@ public class UserServiceImp implements UserService {
             throw new EmployeeNotFoundException("This employee does not exist.");
 
         Optional<String> lastActivity = timesRepository.getLatestActivity(employeeId);
-        if (lastActivity.isPresent() && lastActivity.get().equalsIgnoreCase("IN")) {
+        if (lastActivity.isPresent() && lastActivity.get().split(",")[1].equalsIgnoreCase("IN")) {
             throw new TimeMissmatchException("The employee must Check Out before Checking In.");
         }
 
@@ -64,7 +67,7 @@ public class UserServiceImp implements UserService {
             throw new EmployeeNotFoundException("This employee does not exist.");
 
         Optional<String> lastActivity = timesRepository.getLatestActivity(employeeId);
-        if (!(lastActivity.isPresent() && lastActivity.get().equalsIgnoreCase("IN"))) {
+        if ((lastActivity.isPresent() && !lastActivity.get().split(",")[1].equalsIgnoreCase("IN"))) {
             throw new TimeMissmatchException("The employee must Check In before Checking Out.");
         }
 
@@ -93,36 +96,55 @@ public class UserServiceImp implements UserService {
         List<Times> timesByDate = getTimesByDate(user.getCheckTimes(), month, year);
         List<SessionResponse> sessions = getEmployeeSessions(timesByDate);
         Duration totalDuration = getTotalDuration(user.getCheckTimes());
-        return new ReportResponse(sessions, totalDuration, employeeId);
+        return new ReportResponse(sessions, CustomDuration.formatTime(totalDuration), employeeId);
     }
 
     @Override
-    public List<ReportResponse> generateReportForAllEmployees(long managerId, int month, int year) throws EmployeeNotFoundException, TimeMissmatchException {
+    public ReportResponse generateReportForEmployee(long employeeId, long managerId) throws EmployeeNotFoundException, AccessDeniedException, TimeMissmatchException {
         Optional<User> managerFound = userRepository.findById(managerId);
         if (managerFound.isEmpty())
             throw new EmployeeNotFoundException("This manager does not exist.");
 
-        if (month > 12 || year > new Date().getYear())
-            throw new TimeMissmatchException("The entered date is not correct");
+        Optional<User> employeeFound = userRepository.findById(employeeId);
+        if (employeeFound.isEmpty())
+            throw new EmployeeNotFoundException("This employee does not exist.");
+
+        if (!managerFound.get().getUserList().contains(employeeFound.get()))
+            throw new AccessDeniedException("This employee does not exist.");
+
+        return generateReportForEmployee(employeeId,new Date().getMonth(), new Date().getYear());
+    }
+
+    @Override
+    public List<ReportResponse> generateReportForAllEmployees(long managerId) throws EmployeeNotFoundException {
+        Optional<User> managerFound = userRepository.findById(managerId);
+        if (managerFound.isEmpty())
+            throw new EmployeeNotFoundException("This manager does not exist.");
 
         User manager = managerFound.get();
         List<User> userList = manager.getUserList();
         List<ReportResponse> reportResponses = new ArrayList<>();
         userList.forEach(employee -> {
-            List<Times> timesByDate = getTimesByDate(employee.getCheckTimes(), month, year);
+            List<Times> timesByDate = getTimesByDate(employee.getCheckTimes(), new Date().getMonth(), new Date().getYear());
             List<SessionResponse> sessions = getEmployeeSessions(timesByDate);
             Duration totalDuration = getTotalDuration(employee.getCheckTimes());
-            reportResponses.add(new ReportResponse(sessions, totalDuration, employee.getId()));
+            reportResponses.add(new ReportResponse(sessions, CustomDuration.formatTime(totalDuration), employee.getId()));
         });
         return reportResponses;
     }
 
     @Override
-    public User getEmployee(long employeeId) throws EmployeeNotFoundException {
+    public UserResponse getEmployee(long employeeId) throws EmployeeNotFoundException {
         Optional<User> employeeFound = userRepository.findById(employeeId);
         if (employeeFound.isEmpty())
             throw new EmployeeNotFoundException("This employee does not exist.");
-        return employeeFound.get();
+        User employee= employeeFound.get();
+        UserResponse user = new UserResponse(employee.getFirstName(),
+                employee.getLastName()
+                ,employee.getMobileNumber()
+                , employee.getEmail()
+                , employee.getRoles());
+        return user;
     }
 
     @Override
@@ -146,6 +168,15 @@ public class UserServiceImp implements UserService {
         userRepository.save(user);
     }
 
+    @Override
+    public long getIdByMobile(String mobile) throws EmployeeNotFoundException {
+        Optional<User> userFound = userRepository.getUserByMobileNumber(mobile);
+        if (userFound.isEmpty()){
+            throw new EmployeeNotFoundException("Not Found");
+        }
+        return userFound.get().getId();
+    }
+
     private List<Times> getTimesByDate(List<Times> times, int month, int year) {
         List<Times> newTimeList = new ArrayList<>();
         Date currentDate = new Date();
@@ -159,9 +190,11 @@ public class UserServiceImp implements UserService {
     private List<SessionResponse> getEmployeeSessions(List<Times> times) {
         final List<SessionResponse> sessionList = new ArrayList<>();
         times.forEach((time -> {
-            Duration duration = getTimeBetweenChecks(time);
-            SessionResponse session = new SessionResponse(time.getInTime(), time.getOutTime(), duration);
-            sessionList.add(session);
+            if (time.getOutTime() != null) {
+                Duration duration = getTimeBetweenChecks(time);
+                SessionResponse session = new SessionResponse(CustomDuration.formatDate(time.getInTime()), CustomDuration.formatDate(time.getOutTime()), CustomDuration.formatTime(duration));
+                sessionList.add(session);
+            }
         }));
         return sessionList;
     }
@@ -170,8 +203,10 @@ public class UserServiceImp implements UserService {
         final Duration[] totalDuration = {Duration.ZERO};
 
         times.forEach(time -> {
-            Duration duration = getTimeBetweenChecks(time);
-            totalDuration[0] = totalDuration[0].plus(duration);
+            if (time.getOutTime() != null){
+                Duration duration = getTimeBetweenChecks(time);
+                totalDuration[0] = totalDuration[0].plus(duration);
+            }
         });
 
         return totalDuration[0];

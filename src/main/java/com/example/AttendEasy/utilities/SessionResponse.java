@@ -9,7 +9,7 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 public class SessionResponse {
-    private Date timeIn;
-    private Date timeOut;
-    private Duration duration;
+    private String timeIn;
+    private String timeOut;
+    private String duration;
 }

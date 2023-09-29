@@ -1,7 +1,9 @@
 package com.example.AttendEasy.User;
 
 import com.example.AttendEasy.User.UserRequest.UserRequest;
+import com.example.AttendEasy.User.UserResponse.UserResponse;
 import com.example.AttendEasy.exceptions.EmployeeNotFoundException;
+import com.example.AttendEasy.security.JwtService;
 import com.example.AttendEasy.utilities.MessageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,11 +24,11 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<User> getEmployee(@RequestHeader String Authorization) {
-
-//        Employee employee = employeeService.getEmployee(//Id here);
-//        return new ResponseEntity<>(employee, HttpStatus.FOUND);
-        return null;
+    public ResponseEntity<UserResponse> getUser(@RequestHeader String Authorization) throws EmployeeNotFoundException {
+        String mobileNumber = JwtService.extractMobileWithOutBearer(Authorization);
+        Long id = userService.getIdByMobile(mobileNumber);
+        UserResponse user = userService.getEmployee(id);
+        return new ResponseEntity<>(user, HttpStatus.FOUND);
     }
 
     @PostMapping

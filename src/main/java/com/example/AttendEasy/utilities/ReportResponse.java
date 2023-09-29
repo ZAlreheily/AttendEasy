@@ -10,7 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ReportResponse {
     private List<SessionResponse> sessions;
-    private Duration duration;
+    private String duration;
     private long employeeId;
 
 }

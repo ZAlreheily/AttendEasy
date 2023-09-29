@@ -1,12 +1,12 @@
 package com.example.AttendEasy.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Key;
 import java.util.Date;
@@ -22,7 +22,7 @@ public class JwtService {
         return extractClaim( token, Claims::getSubject );
     }
 
-    public String extractMobileWithOutBearer(String token) {
+    public static String extractMobileWithOutBearer(String token) {
         token = token.substring( 7 );
         return extractClaim( token, Claims::getSubject );
     }
@@ -31,12 +31,13 @@ public class JwtService {
         return extractClaim( token, Claims::getExpiration );
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    public static <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims( token );
         return claimsResolver.apply( claims );
     }
 
     public static String extractClaim(String token, String claimName) {
+        token = token.substring( 7 );
         return Jwts.parser()
                 .setSigningKey( secret )
                 .parseClaimsJws( token )
@@ -44,13 +45,20 @@ public class JwtService {
                 .get( claimName, String.class );
     }
 
-    public Claims extractAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
-                .setSigningKey( getSignKey() )
-                .build()
-                .parseClaimsJws( token )
-                .getBody();
+    public static Claims extractAllClaims(String token) {
+        try {
+            Jws<Claims> claimsJws = Jwts
+                    .parserBuilder()
+                    .setSigningKey(getSignKey())
+                    .build()
+                    .parseClaimsJws(token);
+
+            return claimsJws.getBody();
+        } catch (ExpiredJwtException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Token has expired", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing JWT token", e);
+        }
     }
 
     private Boolean isTokenExpired(String token) {
@@ -62,23 +70,23 @@ public class JwtService {
         return (mobile.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    public String generateToken(String phoneNumber) {
+    public String generateToken(String mobileNumber) {
         Map<String, Object> claimsAdded = new HashMap<>();
 
-        return createToken( claimsAdded, phoneNumber );
+        return createToken( claimsAdded, mobileNumber);
 
     }
 
-    private String createToken(Map<String, Object> claimsAdded, String phoneNumber) {
+    private String createToken(Map<String, Object> claimsAdded, String mobileNumber) {
         return Jwts.builder()
                 .setClaims(claimsAdded)
-                .setSubject(phoneNumber)
+                .setSubject(mobileNumber)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis()+1000*60*30))
+                .setExpiration(new Date(System.currentTimeMillis()+1000*60*60))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 
-    private Key getSignKey() {
+    private static Key getSignKey() {
         byte[] keyByte= Decoders.BASE64.decode(secret);
         return Keys.hmacShaKeyFor(keyByte);
     }
